@@ -1,6 +1,7 @@
 import { call, put, select, take } from 'redux-saga/effects';
 import { eventChannel } from 'redux-saga';
 import { SET_DATA, SET_EVENT, UPDATE_BOUGHT_BITCOINS, UPDATE_SOLD_BITCOINS } from '../store';
+import { getPrice, getTotal } from './helpers';
 
 const payload = {
   event: "subscribe",
@@ -48,32 +49,30 @@ export function* saga() {
     }
 
     if (state.event === 'subscribed' && result?.length === 50) {
-      const boughtBitcoins = result.slice(0, 25);
-      const soldBitcoins = result.slice(25, 50);
+      const boughtBitcoins = result.slice(0, 25).reduce(getTotal, []);
+      const soldBitcoins = result.slice(25, 50).reduce(getTotal, []);
       yield put({ type: SET_DATA, payload: { boughtBitcoins, soldBitcoins } });
     }
 
     if (state.event === 'subscribed' && result?.length === 3) {
       const [price, quantity, amount] = result;
-      const getPrice = item => {
-        const [price] = item;
-        return price;
-      };
       const boughtBitcoinsPrices = state.boughtBitcoins.map(getPrice)
       if (quantity > 0 && amount > 0 && boughtBitcoinsPrices.some(p => price > p)) {
         const index = boughtBitcoinsPrices.findIndex(p => price > p);
         const higherPricesBitcoins = state.boughtBitcoins.slice(0, index);
         const lowerPricesBitcoins = state.boughtBitcoins.slice(index, 24);
-        const bitcoins = [...higherPricesBitcoins, result, ...lowerPricesBitcoins];
-        yield put({ type: UPDATE_BOUGHT_BITCOINS, payload: bitcoins });
+        const bitcoins = [...higherPricesBitcoins, result].reduce(getTotal, []);
+        const bitcoinsResult = [...bitcoins, ...lowerPricesBitcoins].reduce(getTotal, []);
+        yield put({ type: UPDATE_BOUGHT_BITCOINS, payload: bitcoinsResult });
       }
       const soldBitcoinsPrices = state.soldBitcoins.map(getPrice)
       if (quantity > 0 && amount < 0 && soldBitcoinsPrices.some(p => price < p)) {
         const index = soldBitcoinsPrices.findIndex(p => price < p);
         const lowerPricesBitcoins = state.soldBitcoins.slice(0, index);
         const higherPricesBitcoins = state.soldBitcoins.slice(index, 24);
-        const bitcoins = [...lowerPricesBitcoins, result, ...higherPricesBitcoins];
-        yield put({ type: UPDATE_SOLD_BITCOINS, payload: bitcoins });
+        const bitcoins = [...lowerPricesBitcoins, result].reduce(getTotal, []);
+        const bitcoinsResult = [...bitcoins, ...higherPricesBitcoins].reduce(getTotal, []);
+        yield put({ type: UPDATE_SOLD_BITCOINS, payload: bitcoinsResult });
       }
     }
   }
