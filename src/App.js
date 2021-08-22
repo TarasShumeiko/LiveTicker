@@ -1,11 +1,13 @@
-import './App.css';
+import { Header } from './components/Header';
+import { PurchaseTable } from './components/PurchaseTable';
+import { SalesTable } from './components/SalesTable';
 
-export const App = () => {
-  return (
-    <div className="App">
-      <header className="App-header">
-        app
-      </header>
+export const App = () => (
+  <div className="app">
+    <Header />
+    <div className="wrapper">
+      <PurchaseTable />
+      <SalesTable />
     </div>
-  );
-}
+  </div>
+);
